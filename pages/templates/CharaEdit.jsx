@@ -1,8 +1,9 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import SelectBox from "../../components/UIKIT/SelectBox";
 import InputText from "../../components/UIKIT/InputText";
 import { PrimaryButton } from "../../components/UIKIT/PrimaryButton";
+import { db } from "../../Firebase";
 
 const CharaEdit = () => {
 	const [playerName, setPlayerName] = useState(""),
@@ -40,6 +41,7 @@ const CharaEdit = () => {
 		},
 		[setUrl]
 	);
+
 	const playerNames = [
 		{ id: "erickwolf", name: "Erick Wolf" },
 		{ id: "kuro", name: "クロ" },
@@ -59,6 +61,29 @@ const CharaEdit = () => {
 		{ id: "female", name: "女" },
 		{ id: "others", name: "その他" },
 	];
+	useEffect(() => {
+		let id = window.location.pathname.split("/templates/CharaEdit")[1];
+		if (id !== "") {
+			id = id.split("/templates/Home")[1];
+		}
+
+		if (id !== "") {
+			db.collection("characters")
+				.doc(id)
+				.get()
+				.then((snapshot) => {
+					const data = snapshot.data();
+					setPlayerName(data.playerName);
+					setTRPG(data.TRPG);
+					setCharacterName(data.characterName);
+					setOccupation(data.occupation);
+					setSkill(data.skill);
+					setGender(data.gender);
+					setUrl(data.url);
+				});
+		}
+	}, []);
+
 	// console.log({ playerNames });
 	return (
 		<div>
@@ -133,7 +158,16 @@ const CharaEdit = () => {
 					variant="outlined"
 					type="submit"
 					onClick={() => {
-						console.log("clicked!");
+						post(
+							characterName,
+							TRPG,
+							characterName,
+							occupation,
+							skill,
+							gender,
+							url
+						);
+						// console.log("clicked!");
 					}}
 				></PrimaryButton>
 			</div>
