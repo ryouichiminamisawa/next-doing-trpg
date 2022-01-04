@@ -3,36 +3,32 @@ import Link from "next/link";
 import SelectBox from "../../components/UIKIT/SelectBox";
 import InputText from "../../components/UIKIT/InputText";
 import { PrimaryButton } from "../../components/UIKIT/PrimaryButton";
-// import { useRouter } from "next/router";
-import { addDoc, collection, getFirestore } from "firebase/firestore";
+import {
+	addDoc,
+	collection,
+	Firestore,
+	getFirestore,
+	getDocs,
+	doc,
+	query,
+} from "firebase/firestore";
 import { firebaseConfig } from "../../Firebase/firebaseConfig";
 import { initializeApp } from "firebase/app";
-import SelectInput from "@material-ui/core/Select/SelectInput";
+import { DropzoneArea } from "material-ui-dropzone";
+import { getDownloadURL, getStorage, ref, uploadBytes } from "firebase/storage";
+import { Button } from "@material-ui/core";
+import { async } from "@firebase/util";
+// import {CharacterCard} from "./CharacterCard"
 
 const CharaEdit = () => {
-	// const router = useRouter();
-	// const handleClick = () => {
-	// 	// event.preventDefault();
-	// 	router.push("/templates/Home");
-	// };
-
-	// const [character, setCharacter] = useState({
-	// 	playerName: "",
-	// 	TRPG: "",
-	// 	characterName: "",
-	// 	occupation: "",
-	// 	skill: "",
-	// 	gender: "",
-	// 	url: "",
-	// });
-
 	const [playerName, setPlayerName] = useState(""),
 		[TRPG, setTRPG] = useState(""),
 		[characterName, setCharacterName] = useState(""),
 		[occupation, setOccupation] = useState(""),
 		[skill, setSkill] = useState(""),
 		[gender, setGender] = useState(""),
-		[url, setUrl] = useState("");
+		[url, setUrl] = useState(""),
+		[files, setFiles] = useState([]);
 
 	const inputCharacterName = (event) => {
 		setCharacterName(event.target.value);
@@ -50,26 +46,6 @@ const CharaEdit = () => {
 		setUrl(event.target.value);
 	};
 
-	// const inputOccupation = useCallback(
-	// 	(event) => {
-	// 		setOccupation(event.target.value);
-	// 	},
-	// 	[setOccupation]
-	// );
-
-	// const inputSkill = useCallback(
-	// 	(event) => {
-	// 		setSkill(event.target.value);
-	// 	},
-	// 	[setSkill]
-	// );
-
-	// const inputUrl = useCallback(
-	// 	(event) => {
-	// 		setUrl(event.target.value);
-	// 	},
-	// 	[setUrl]
-	// );
 	const playerNames = [
 		{ id: "erickwolf", name: "Erick Wolf" },
 		{ id: "kuro", name: "クロ" },
@@ -90,41 +66,12 @@ const CharaEdit = () => {
 		{ id: "female", name: "女" },
 		{ id: "others", name: "その他" },
 	];
-	// useEffect(() => {
-	// 	let id = window.location.pathname.split("/templates/CharaEdit")[1];
-	// 	if (id !== "") {
-	// 		id = id.split("/templates/Home")[1];
-	// 	}
 
-	// 	if (id !== "") {
-	// 		db.collection("characters")
-	// 			.doc(id)
-	// 			.get()
-	// 			.then((snapshot) => {
-	// 				const data = snapshot.data();
-	// 				setPlayerName(data.playerName);
-	// 				setTRPG(data.TRPG);
-	// 				setCharacterName(data.characterName);
-	// 				setOccupation(data.occupation);
-	// 				setSkill(data.skill);
-	// 				setGender(data.gender);
-	// 				setUrl(data.url);
-	// 			});
-	// 	}
-	// }, []);
+	// const app = initializeApp(firebaseConfig);
+	// const firestore = getFirestore(app);
+	// const charactersRef = firestore.collection("characters");
 
-	// const characterSubmit =
-
-	// const saveCharacter = (character) => {
-	// 	// console.log("this");
-	// 	const app = initializeApp(firebaseConfig);
-	// 	const firestore = getFirestore(app);
-
-	// 	console.log("save character");
-	// 	addDoc(collection(firestore, "characters"), character);
-	// };
-
-	const saveCharacter = (
+	const saveCharacter = async (
 		playerName,
 		TRPG,
 		characterName,
@@ -136,6 +83,7 @@ const CharaEdit = () => {
 		const app = initializeApp(firebaseConfig);
 		const firestore = getFirestore(app);
 
+		const imageUrl = await uploadImage(files[0]);
 		addDoc(collection(firestore, "characters"), {
 			playerName: playerName,
 			TRPG: TRPG,
@@ -144,7 +92,31 @@ const CharaEdit = () => {
 			skill: skill,
 			gender: gender,
 			url: url,
+			imageUrl: imageUrl,
 		});
+	};
+	const fetchCharacter = async () => {
+		const app = initializeApp(firebaseConfig);
+		const firestore = getFirestore(app);
+
+		const q = query(collection(firestore, "characters"));
+		const querySnapShot = await getDocs(q);
+		// console.log(querySnapShot);
+		querySnapShot.forEach((doc) => {
+			console.log(doc.id, "=>", doc.data());
+		});
+	};
+
+	const uploadImage = (file) => {
+		// console.log(file);
+		const app = initializeApp(firebaseConfig);
+		const storage = getStorage(app);
+		const storageRef = ref(storage, `characterImage/${file.name}`);
+
+		uploadBytes(storageRef, file).then((snapshot) => {
+			// console.log(snapshot);
+		});
+		return getDownloadURL(storageRef);
 	};
 
 	return (
@@ -152,6 +124,11 @@ const CharaEdit = () => {
 			<h1>キャラクター編集画面です！</h1>
 			<Link href="./Home">home画面に飛びます</Link>
 			<div>
+				<DropzoneArea
+					onChange={(files) => {
+						setFiles(files);
+					}}
+				/>
 				<SelectBox
 					label="プレイヤー名"
 					options={playerNames}
@@ -225,13 +202,8 @@ const CharaEdit = () => {
 					color="primary"
 					size="large"
 					variant="outlined"
-					// type="submit"
+					type="submit"
 					onClick={() => {
-						// const router = useRouter();
-						// const handleClick = (e) => {
-						// 	e.preventDefault();
-						// 	router.push("/Home");
-						// };
 						saveCharacter(
 							playerName,
 							TRPG,
@@ -241,17 +213,23 @@ const CharaEdit = () => {
 							gender,
 							url
 						);
-						// handleClick();
-						// characterName,
-						// TRPG,
-						// characterName,
-						// occupation,
-						// skill,
-						// gender,
-						// url
-						// console.log("clicked!");
 					}}
 				></PrimaryButton>
+				<Button
+					onClick={() => {
+						fetchCharacter(
+							playerName,
+							TRPG,
+							characterName,
+							occupation,
+							skill,
+							gender,
+							url
+						);
+					}}
+				>
+					fetchの確認ボタン
+				</Button>
 			</div>
 		</div>
 	);
